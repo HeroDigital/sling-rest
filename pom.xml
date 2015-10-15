@@ -25,8 +25,8 @@
     </properties>
     
     <scm>
-        <connection>scm:git:ssh://git@github.com:HeroDigital/sling-rest.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:HeroDigital/sling-rest.git</developerConnection>
+        <connection>scm:git:git@github.com:HeroDigital/sling-rest.git</connection>
+        <developerConnection>scm:git:git@github.com:HeroDigital/sling-rest.git</developerConnection>
         <url>https://github.com/HeroDigital/sling-rest</url>
     </scm>
 
