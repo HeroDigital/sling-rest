@@ -36,8 +36,10 @@ class RestFunctionRegistryTrieNode<T> {
 				String registeredWildcard = childNode.segment.getWildcardName();
 				String newWildcard = curSegment.getWildcardName();
 				if (!registeredWildcard.equals(newWildcard)) {
-					throw new IllegalArgumentException("Cannot register [" + function + "]. Path already contains wildcard {"
-							+ registeredWildcard + "} and trying to register wildcard {" + newWildcard + "}");
+					throw new IllegalArgumentException("Cannot register [" + function 
+							+ "]. Path already contains wildcard {"
+							+ registeredWildcard + "} and trying to register wildcard {" 
+							+ newWildcard + "}");
 				}
 			}
 		}
@@ -45,7 +47,8 @@ class RestFunctionRegistryTrieNode<T> {
 		// base case: at the tail of the path
 		if (pathSegments.isEmpty()) {
 			if (childNode.function != null) {
-				throw new IllegalArgumentException("Cannot register [" + function + "]. Function [" + childNode.function + "] already exists");
+				throw new IllegalArgumentException("Cannot register [" + function 
+						+ "]. Function [" + childNode.function + "] already exists");
 			}
 			childNode.function = function;
 		} else {
@@ -55,70 +58,90 @@ class RestFunctionRegistryTrieNode<T> {
 		
 	}
 	
+	/**
+	 * Retrieve the matching function {@code <T>} from the trie data structure.
+	 * 
+	 * @param segments The search path (URL) consisting of individual {@link PathSegment} objects.
+	 * Each path segment maps to a level of the trie.
+	 * @param wildcardMap This map will be updated with wildcard key/value pairs if resolved
+	 * path resulted in the use of wildcard segments.
+	 * 
+	 * @return resolved {@code <T>} or null
+	 */
 	public T getFunction(List<PathSegment> segments, Map<String, String> wildcardMap) {
-		PathSegment currentSeg = segments.remove(0);
-		RestFunctionRegistryTrieNode<T> matchedSeg = children.get(currentSeg);
-
-		// WILDCARD CHECK
-		// If match doesn't exist, check for wildcard segment
-		// This happens when initially going down the tree. There is a similar block 
-		// where the wild card check is performed when going back up the tree (see: RECURSIVE BACKTRACK)
-		if (matchedSeg == null) {
-			matchedSeg = children.get(PathSegment.WILDCARD);
-			if (matchedSeg == null) {
-				segments.add(0, currentSeg); // for recursive backtracking
-				return null;
-			} else if (!segments.isEmpty() || matchedSeg.function != null) {
-				// protected against adding wildcard when at tail and no function has been registered
-				wildcardMap.put(matchedSeg.segment.getWildcardName(), currentSeg.getValue());
-			}
-		}
-
-		if (segments.isEmpty()) {
-			// PRIMARY BASE CASE
-			// At the tail of the search path (last segment)
-			segments.add(0, currentSeg); // for recursive backtracking
-			return matchedSeg.function; // may be null
-		} else {
-			// RECURSIVE CALL #1
-			// Have not reached the tail yet, continue down tree
-			T function = matchedSeg.getFunction(segments, wildcardMap);
+		PathSegment currentSeg = segments.remove(0); // pop the next segment off the list
+		
+		try {
+			// WALK THE TREE #1
+			// Check child nodes for matching segment key
+			RestFunctionRegistryTrieNode<T> matchedNode = children.get(currentSeg);
 			
-			/*
-			 * RECURSIVE BACKTRACK
-			 * If function wasn't found, it may be that we took a wrong turn down
-			 * a non-wildcard node. Check for wildcard node as we go back up the tree.
-			 * 
-			 * Example:
-			 * - Registered paths:
-			 *     - /api/basic/auth/op1
-			 *     - /api/{type}/op2
-			 * - Queried path: 
-			 *     - /api/basic/op2
-			 * - Code will first try the non-wildcard "basic" segment looking for "op2"
-			 *   before backtracking and attempting the wildcard {type} and then find "op2"
-			 */
-			if (function == null && !matchedSeg.segment.isWildCard()) {
-				matchedSeg = children.get(PathSegment.WILDCARD);
-				if (matchedSeg != null) {
-					// add wildcard to wildcardMap
-					wildcardMap.put(matchedSeg.segment.getWildcardName(), currentSeg.getValue());
+			// BASE CASE #1
+			// At tail of search path (last segment) and found node with matching segment for key
+			if (segments.isEmpty() && matchedNode != null) {
+				return matchedNode.function; // may be null
+			}
+			
+			// RECURSIVE CALL
+			// Have not reached tail yet, continue down tree
+			T function = (matchedNode == null) ? null : matchedNode.getFunction(segments, wildcardMap);
+			
+			if (function == null) {
+				// This means lookup based on matching segment failed. Now try tree traversal using
+				// a wildcard segment instead.
+				
+				// WALK THE TREE #2
+				// Check child nodes for wildcard based segment
+				matchedNode = children.get(PathSegment.WILDCARD);
+				
+				if (matchedNode != null) {
+					// Add wildcard to wildcardMap
+					wildcardMap.put(matchedNode.segment.getWildcardName(), currentSeg.getValue());
 					
-					// RECURSIVE CALL #2
-					function = matchedSeg.getFunction(segments, wildcardMap);
+					// BASE CASE #2
+					// At tail of search path (last segment) and found wildcard segment at this location
+					if (segments.isEmpty()) {
+						return matchedNode.function; // may be null
+					}
 					
-					// if function wasn't found, remove wildcard from wildcardMap
+					/*
+					 * RECURSIVE BACKTRACK CALL
+					 * If function wasn't found, it may be that we took a wrong turn down
+					 * a non-wildcard node. Check for nodes with wildcard segments as we
+					 * go back up the recursive stack.
+					 * 
+					 * Example:
+					 * - Registered paths:
+					 *     - /api/basic/auth/op1
+					 *     - /api/{type}/op2
+					 * - Queried path: 
+					 *     - /api/basic/op2
+					 * - Code will first try the non-wildcard "basic" segment looking for "op2"
+					 *   before backtracking and attempting the wildcard {type} segment.
+					 */
+					function = matchedNode.getFunction(segments, wildcardMap);
+					
+					// If function wasn't found via this node and its children, remove this 
+					// wildcard segment from wildcardMap
 					if (function == null) {
-						wildcardMap.remove(matchedSeg.segment.getWildcardName());
+						wildcardMap.remove(matchedNode.segment.getWildcardName());
 					}
 				}
 			}
 			
-			segments.add(0, currentSeg); // for recursive backtracking
 			return function;
+			
+		} finally {
+			/*
+			 * Guarantees segments popped will also be re-pushed.
+			 * This is required for support of the recursive backtracking.
+			 * Also want to be a good citizen and leave the list in the same
+			 * state as it was provided.
+			 */
+			segments.add(0, currentSeg);
 		}
 	}
-
+	
 	@Override
 	public String toString() {
 		return printMap(children, 1);
