@@ -33,9 +33,9 @@
     <distributionManagement>
         <repository>
             <uniqueVersion>false</uniqueVersion>
-            <id>hero-thirdparty</id>
+            <id>hero-public</id>
             <name>Hero Repository</name>
-            <url>https://build.herodigital.com:8081/nexus/content/repositories/thirdparty/</url>
+            <url>https://build.herodigital.com:8081/nexus/content/repositories/herodigital-public/</url>
             <layout>default</layout>
         </repository>
         <snapshotRepository>
