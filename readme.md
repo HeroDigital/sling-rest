@@ -18,7 +18,7 @@ Please see Javadoc for SlingRestService and SlingRestFunction
 ```
 #!java
 
-@SlingRestFunction("GET:/api/v1/user/{id}")
+@SlingRestFunction("GET:/foo/v1/user/{id}")
 public RestResponse userInfo(SlingHttpServletRequest request, SlingHttpServletResponse response) throws SlingRestServiceException {
    String id = (String) request.getAttribute("ws.id");
    try  {
@@ -34,4 +34,6 @@ public RestResponse userInfo(SlingHttpServletRequest request, SlingHttpServletRe
 }
 ```
 
-Example URL: http://localhost:4502/api/v1/user/123
+Example URL: http://localhost:4502/foo/v1/user/123.ws.json
+
+The selector "ws" and extension "json" are required for all requests.
