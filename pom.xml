@@ -5,7 +5,7 @@
 
     <groupId>com.herodigital.wcm</groupId>
     <artifactId>sling-rest</artifactId>
-    <version>1.0.8-SNAPSHOT</version>
+    <version>1.0.8</version>
     <packaging>bundle</packaging>
 
     <name>Sling REST Framework</name>
@@ -28,7 +28,8 @@
         <connection>scm:git:git@github.com:HeroDigital/sling-rest.git</connection>
         <developerConnection>scm:git:git@github.com:HeroDigital/sling-rest.git</developerConnection>
         <url>https://github.com/HeroDigital/sling-rest</url>
-    </scm>
+      <tag>sling-rest-1.0.8</tag>
+  </scm>
 
     <distributionManagement>
         <repository>
